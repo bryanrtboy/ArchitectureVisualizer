@@ -16,6 +16,8 @@ namespace UnityEngine.PostProcessing
         // Inspector fields
         public PostProcessingProfile profile;
 
+        public Func<Vector2, Matrix4x4> jitteredMatrixFunc;
+
         // Internal helpers
         Dictionary<Type, KeyValuePair<CameraEvent, CommandBuffer>> m_CommandBuffers;
         List<PostProcessingComponentBase> m_Components;
@@ -33,6 +35,7 @@ namespace UnityEngine.PostProcessing
         BuiltinDebugViewsComponent m_DebugViews;
         AmbientOcclusionComponent m_AmbientOcclusion;
         ScreenSpaceReflectionComponent m_ScreenSpaceReflection;
+        FogComponent m_FogComponent;
         MotionBlurComponent m_MotionBlur;
         TaaComponent m_Taa;
         EyeAdaptationComponent m_EyeAdaptation;
@@ -60,6 +63,7 @@ namespace UnityEngine.PostProcessing
             m_DebugViews = AddComponent(new BuiltinDebugViewsComponent());
             m_AmbientOcclusion = AddComponent(new AmbientOcclusionComponent());
             m_ScreenSpaceReflection = AddComponent(new ScreenSpaceReflectionComponent());
+            m_FogComponent = AddComponent(new FogComponent());
             m_MotionBlur = AddComponent(new MotionBlurComponent());
             m_Taa = AddComponent(new TaaComponent());
             m_EyeAdaptation = AddComponent(new EyeAdaptationComponent());
@@ -114,6 +118,7 @@ namespace UnityEngine.PostProcessing
             m_DebugViews.Init(context, profile.debugViews);
             m_AmbientOcclusion.Init(context, profile.ambientOcclusion);
             m_ScreenSpaceReflection.Init(context, profile.screenSpaceReflection);
+            m_FogComponent.Init(context, profile.fog);
             m_MotionBlur.Init(context, profile.motionBlur);
             m_Taa.Init(context, profile.antialiasing);
             m_EyeAdaptation.Init(context, profile.eyeAdaptation);
@@ -149,7 +154,7 @@ namespace UnityEngine.PostProcessing
 
             // Temporal antialiasing jittering, needs to happen before culling
             if (!m_RenderingInSceneView && m_Taa.active && !profile.debugViews.willInterrupt)
-                m_Taa.SetProjectionMatrix();
+                m_Taa.SetProjectionMatrix(jitteredMatrixFunc);
         }
 
         void OnPreRender()
@@ -161,6 +166,7 @@ namespace UnityEngine.PostProcessing
             TryExecuteCommandBuffer(m_DebugViews);
             TryExecuteCommandBuffer(m_AmbientOcclusion);
             TryExecuteCommandBuffer(m_ScreenSpaceReflection);
+            TryExecuteCommandBuffer(m_FogComponent);
 
             if (!m_RenderingInSceneView)
                 TryExecuteCommandBuffer(m_MotionBlur);
@@ -171,7 +177,8 @@ namespace UnityEngine.PostProcessing
             if (profile == null || m_Camera == null)
                 return;
 
-            m_Camera.ResetProjectionMatrix();
+            if (!m_RenderingInSceneView && m_Taa.active && !profile.debugViews.willInterrupt)
+                m_Context.camera.ResetProjectionMatrix();
         }
 
         // Classic render target pipeline for RT-based effects
@@ -234,30 +241,41 @@ namespace UnityEngine.PostProcessing
 
             uberActive |= TryPrepareUberImageEffect(m_ChromaticAberration, uberMaterial);
             uberActive |= TryPrepareUberImageEffect(m_ColorGrading, uberMaterial);
-            uberActive |= TryPrepareUberImageEffect(m_UserLut, uberMaterial);
-            uberActive |= TryPrepareUberImageEffect(m_Grain, uberMaterial);
             uberActive |= TryPrepareUberImageEffect(m_Vignette, uberMaterial);
-            uberActive |= TryPrepareUberImageEffect(m_Dithering, uberMaterial);
+            uberActive |= TryPrepareUberImageEffect(m_UserLut, uberMaterial);
 
-            // Render to destination
-            if (uberActive)
+            var fxaaMaterial = fxaaActive
+                ? m_MaterialFactory.Get("Hidden/Post FX/FXAA")
+                : null;
+
+            if (fxaaActive)
             {
-                if (!GraphicsUtils.isLinearColorSpace)
-                    uberMaterial.EnableKeyword("UNITY_COLORSPACE_GAMMA");
+                fxaaMaterial.shaderKeywords = null;
+                TryPrepareUberImageEffect(m_Grain, fxaaMaterial);
+                TryPrepareUberImageEffect(m_Dithering, fxaaMaterial);
 
-                var input = src;
-                var output = dst;
-                if (fxaaActive)
+                if (uberActive)
                 {
-                    output = m_RenderTextureFactory.Get(src);
+                    var output = m_RenderTextureFactory.Get(src);
+                    Graphics.Blit(src, output, uberMaterial, 0);
                     src = output;
                 }
 
-                Graphics.Blit(input, output, uberMaterial, 0);
-            }
-
-            if (fxaaActive)
                 m_Fxaa.Render(src, dst);
+            }
+            else
+            {
+                uberActive |= TryPrepareUberImageEffect(m_Grain, uberMaterial);
+                uberActive |= TryPrepareUberImageEffect(m_Dithering, uberMaterial);
+
+                if (uberActive)
+                {
+                    if (!GraphicsUtils.isLinearColorSpace)
+                        uberMaterial.EnableKeyword("UNITY_COLORSPACE_GAMMA");
+
+                    Graphics.Blit(src, dst, uberMaterial, 0);
+                }
+            }
 
             if (!uberActive && !fxaaActive)
                 Graphics.Blit(src, dst);
@@ -323,6 +341,7 @@ namespace UnityEngine.PostProcessing
         {
             m_Taa.ResetHistory();
             m_MotionBlur.ResetHistory();
+            m_EyeAdaptation.ResetHistory();
         }
 
         #region State management
