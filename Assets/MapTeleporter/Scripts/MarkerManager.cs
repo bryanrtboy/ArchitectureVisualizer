@@ -36,7 +36,7 @@ public class MarkerManager : MonoBehaviour
 		//Sets this to not be destroyed when reloading scene
 		DontDestroyOnLoad (gameObject);
 
-		CalculateLocalBounds ();
+		CalculateLocalBounds (m_markersGroup.transform);
 
 	}
 
@@ -48,14 +48,19 @@ public class MarkerManager : MonoBehaviour
 			PlaceMarkersOnSprite (m_spriteMap);
 
 		if (m_meshFilterMap != null)
-			PlaceMarkersOnMesh (m_meshFilterMap);
-
-		
+			PlaceMarkersOnMesh (m_meshFilterMap);	
 	}
 
 	void GetMarkersAndNormalizedPositions ()
 	{
-		Marker[] temp = m_markersGroup.GetComponentsInChildren<Marker> ();
+        //Store the positions and rotations so we can zero out the object for calculations
+        Vector3 tempPos = m_markersGroup.transform.position;
+        Quaternion tempRot = m_markersGroup.transform.rotation;
+
+        m_markersGroup.transform.position = Vector3.zero;
+        m_markersGroup.transform.localEulerAngles = Vector3.zero;
+
+        Marker[] temp = m_markersGroup.GetComponentsInChildren<Marker> ();
 		m_worldMarkers = new Dictionary<int, Marker> ();
 
 		for (int i = 0; i < temp.Length; i++) {
@@ -66,26 +71,33 @@ public class MarkerManager : MonoBehaviour
 			//Get the coordinates as a percent of the world size plane (normalize) when laying flat. This may require that the world map be at position 0,0,0 for it to work right
 			float xPos = Mathf.InverseLerp (0, m_worldArea.bounds.size.x, m.transform.position.x + m_worldArea.bounds.extents.x);
 			float yPos = Mathf.InverseLerp (0, m_worldArea.bounds.size.z, m.transform.position.z + m_worldArea.bounds.extents.z);
-			float zPos = Mathf.InverseLerp (0, m_markerBoundsHeight, m.transform.position.y);
+			m.m_elevation = Mathf.InverseLerp (0, m_markerBoundsHeight, m.transform.position.y);
 
-			if (m_flipY)
-				zPos = -zPos;
 
-			m.m_normalizedPosition = new Vector3 (xPos, yPos, zPos);
+			m.m_normalizedPosition = new Vector3 (xPos, yPos, 0);
 			m_worldMarkers.Add (i, m);
 
 		}
+
+        m_markersGroup.transform.position = tempPos;
+        m_markersGroup.transform.rotation = tempRot;
 	}
 
 	void PlaceMarkersOnSprite (SpriteRenderer sprite)
 	{
 		m_mapMarkers = new Animator[m_worldMarkers.Count];
 
+        Vector3 tempPos = sprite.transform.position;
+        Quaternion tempRot = sprite.transform.rotation;
+
 		//make a parent for the map in case the map is scaled non-uniformly
 		GameObject parent = new GameObject ("Map and Markers");
-		parent.transform.position = sprite.transform.position;
-		parent.transform.rotation = sprite.transform.rotation;
+
+		parent.transform.position = Vector3.zero;
+		parent.transform.rotation = Quaternion.identity;
 		sprite.gameObject.transform.SetParent (parent.transform);
+        sprite.transform.localPosition = Vector3.zero;
+        sprite.transform.localEulerAngles = Vector3.zero;
 
 		GameObject marker = new GameObject ("Markers");
 		marker.transform.SetParent (parent.transform);
@@ -105,6 +117,9 @@ public class MarkerManager : MonoBehaviour
 			m_mapMarkers [i] = go.GetComponentInChildren<Animator> () as Animator;
 		}
 
+        sprite.transform.position = tempPos;
+        sprite.transform.rotation = tempRot;
+
 		m_isReady = true;
 	}
 
@@ -112,21 +127,30 @@ public class MarkerManager : MonoBehaviour
 	{
 
 		m_mapMarkers = new Animator[m_worldMarkers.Count];
+        //Need to zero out the object for correct coordinates, saving it's current position and rotation
+        Vector3 tempPos = mf.transform.position;
+        Quaternion tempRot = mf.transform.rotation;
 
-		GameObject marker = new GameObject ("Markers");
+        mf.transform.position = Vector3.zero;
+        mf.transform.localEulerAngles = Vector3.zero;
+
+        GameObject marker = new GameObject ("Markers");
 
 		for (int i = 0; i < m_worldMarkers.Count; i++) {
 			
 			GameObject go = Instantiate (m_mapMarkerPrefab, marker.transform);
 			go.transform.position = UvTo3D (new Vector2 (m_worldMarkers [i].m_normalizedPosition.x, m_worldMarkers [i].m_normalizedPosition.y), mf);
 			go.transform.localPosition += m_offsetBy;
-			go.transform.Translate (new Vector3 (0, 0, m_worldMarkers [i].m_normalizedPosition.z * m_heightMultiplier));
 			m_mapMarkers [i] = go.GetComponentInChildren<Animator> () as Animator;
 		}
-		//if the mesh was deformed, we need to now move the group into the root
-		marker.transform.SetParent (mf.transform.root.transform);
-		marker.transform.localPosition = Vector3.zero;
-		marker.transform.localEulerAngles = Vector3.zero;
+
+        //UV to 3D takes care of scaled meshes, let's parent it to an object for easy manipulation
+        marker.transform.SetParent (mf.transform.root.transform);
+        marker.transform.localPosition = Vector3.zero;
+        marker.transform.localEulerAngles = new Vector3(0, 0, 180);
+
+        mf.transform.position = tempPos;
+        mf.transform.rotation = tempRot;
 
 		m_isReady = true;
 
@@ -181,21 +205,21 @@ public class MarkerManager : MonoBehaviour
 		return (v1.x * v2.y - v1.y * v2.x) / 2;
 	}
 
-	private void CalculateLocalBounds ()
+	private void CalculateLocalBounds (Transform t)
 	{
-		Quaternion currentRotation = this.transform.rotation;
-		this.transform.rotation = Quaternion.Euler (0f, 0f, 0f);
-		Bounds bounds = new Bounds (this.transform.position, Vector3.zero);
+		Quaternion currentRotation = t.transform.rotation;
+		t.transform.rotation = Quaternion.Euler (0f, 0f, 0f);
+		Bounds bounds = new Bounds (t.transform.position, Vector3.zero);
 		foreach (Renderer renderer in GetComponentsInChildren<Renderer>()) {
 			bounds.Encapsulate (renderer.bounds);
 		}
-		Vector3 localCenter = bounds.center - this.transform.position;
+		Vector3 localCenter = bounds.center - t.transform.position;
 		bounds.center = localCenter;
 
 		m_markerBoundsHeight = bounds.extents.y * 2;
 
 //		Debug.Log ("The local bounds of this model is " + bounds);
-		this.transform.rotation = currentRotation;
+		t.transform.rotation = currentRotation;
 
 
 	}

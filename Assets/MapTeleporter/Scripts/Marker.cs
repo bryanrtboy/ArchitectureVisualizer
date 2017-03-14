@@ -40,8 +40,10 @@ public class Marker : MonoBehaviour
 	public Vector3 m_normalizedPosition;
 	[HideInInspector]
 	public GameObject m_telePortTo;
-	//[HideInInspector]
+	[HideInInspector]
 	public BuildingInfo m_info;
+   // [HideInInspector]
+    public float m_elevation;
 
 	void Start ()
 	{
