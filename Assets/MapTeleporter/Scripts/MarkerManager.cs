@@ -35,9 +35,7 @@ public class MarkerManager : MonoBehaviour
             
 		//Sets this to not be destroyed when reloading scene
 		DontDestroyOnLoad (gameObject);
-
 		CalculateLocalBounds (m_markersGroup.transform);
-
 	}
 
 	void Start ()
@@ -59,6 +57,7 @@ public class MarkerManager : MonoBehaviour
 
         m_markersGroup.transform.position = Vector3.zero;
         m_markersGroup.transform.localEulerAngles = Vector3.zero;
+
 
         Marker[] temp = m_markersGroup.GetComponentsInChildren<Marker> ();
 		m_worldMarkers = new Dictionary<int, Marker> ();
@@ -127,12 +126,17 @@ public class MarkerManager : MonoBehaviour
 	{
 
 		m_mapMarkers = new Animator[m_worldMarkers.Count];
-        //Need to zero out the object for correct coordinates, saving it's current position and rotation
-        Vector3 tempPos = mf.transform.position;
-        Quaternion tempRot = mf.transform.rotation;
 
-        mf.transform.position = Vector3.zero;
-        mf.transform.localEulerAngles = Vector3.zero;
+        Transform root = mf.transform.root.transform;
+
+        //Need to zero out the object for correct coordinates, saving it's current position and rotation
+        Vector3 tempPos = root.position;
+        Quaternion tempRot = root.rotation;
+        Vector3 tempScale = root.localScale;
+
+        root.position = Vector3.zero;
+       root.localEulerAngles = Vector3.zero;
+       root.localScale = Vector3.one;
 
         GameObject marker = new GameObject ("Markers");
 
@@ -148,9 +152,11 @@ public class MarkerManager : MonoBehaviour
         marker.transform.SetParent (mf.transform.root.transform);
         marker.transform.localPosition = Vector3.zero;
         marker.transform.localEulerAngles = new Vector3(0, 0, 180);
+       // marker.transform.localScale = tempScale;
 
-        mf.transform.position = tempPos;
-        mf.transform.rotation = tempRot;
+        root.position = tempPos;
+        root.transform.rotation = tempRot;
+        root.transform.localScale = tempScale;
 
 		m_isReady = true;
 

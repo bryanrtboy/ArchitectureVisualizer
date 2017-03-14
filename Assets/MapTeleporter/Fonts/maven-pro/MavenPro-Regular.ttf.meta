@@ -4,8 +4,8 @@ timeCreated: 1488644115
 licenseType: Pro
 TrueTypeFontImporter:
   serializedVersion: 4
-  fontSize: 144
-  forceTextureCase: 0
+  fontSize: 72
+  forceTextureCase: -2
   characterSpacing: 0
   characterPadding: 1
   includeFontData: 1
@@ -17,7 +17,7 @@ TrueTypeFontImporter:
   - {fileID: 12800000, guid: e1800478502e9493fbaf5381b51ff464, type: 3}
   - {fileID: 12800000, guid: 8ccf5eea5b7734835a7978d4f6d8c8e6, type: 3}
   customCharacters: 
-  fontRenderingMode: 0
+  fontRenderingMode: 3
   ascentCalculationMode: 1
   userData: 
   assetBundleName: 

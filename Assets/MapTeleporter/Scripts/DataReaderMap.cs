@@ -7,15 +7,15 @@ using VTL.IO;
 public class DataReaderMap : MonoBehaviour
 {
 
-	public static DataReaderMap instance = null;
-	// specify the location of your csv file relative to a Resources folder
-	// leave off the extension
-	public string resourceLocation = "data";
+    public static DataReaderMap instance = null;
+    // specify the location of your csv file relative to a Resources folder
+    // leave off the extension
+    public string resourceLocation = "data";
 
-	//[HideInInspector]
-	public Dictionary<int,BuildingInfo> m_data;
+    //[HideInInspector]
+    public Dictionary<int, BuildingInfo> m_data;
 
-	void Awake ()
+    void Awake ()
 	{
 
 
@@ -23,19 +23,25 @@ public class DataReaderMap : MonoBehaviour
 		if (instance == null)
 			instance = this;
 		else if (instance != this)
-			Destroy (gameObject);    
-            
-		//Sets this to not be destroyed when reloading scene
-		DontDestroyOnLoad (gameObject);
+
+            Destroy(gameObject);
+
+        //Sets this to not be destroyed when reloading scene
+        DontDestroyOnLoad(gameObject);
 
 		DictReader dictReader = new DictReader (resourceLocation);
 		m_data = new Dictionary<int, BuildingInfo> ();
-		BuildingInfo b = new BuildingInfo ();
-
-		m_data.Add (0, b);
-
 
 		foreach (var row in dictReader) {
+			Debug.Log (row ["ID"] + ", " +
+			row ["IMAGE"] + ", " +
+			row ["ARCHITECT"] + ", " +
+			row ["BUILDING"] + ", " +
+			row ["HEX"] + ", " +
+			row ["RGB"] + ", " +
+			row ["QUOTE"] + ", " +
+			row ["BLOCK"]
+			);
 
 			BuildingInfo info = new BuildingInfo ();
 			info.m_image = row ["IMAGE"];
@@ -53,8 +59,10 @@ public class DataReaderMap : MonoBehaviour
 		}
 
 
-//		Debug.Log (dictReader);
+		Debug.Log (dictReader);
 	}
+
+
 }
 
 [System.Serializable]
