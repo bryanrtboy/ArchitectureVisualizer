@@ -32,18 +32,19 @@ public class DataReaderMap : MonoBehaviour
 		DictReader dictReader = new DictReader (resourceLocation);
 		m_data = new Dictionary<int, BuildingInfo> ();
 
-		foreach (var row in dictReader) {
-			Debug.Log (row ["ID"] + ", " +
-			row ["IMAGE"] + ", " +
-			row ["ARCHITECT"] + ", " +
-			row ["BUILDING"] + ", " +
-			row ["HEX"] + ", " +
-			row ["RGB"] + ", " +
-			row ["QUOTE"] + ", " +
-			row ["BLOCK"]
-			);
+        foreach (var row in dictReader)
+        {
+            //	Debug.Log (row ["ID"] + ", " +
+            //	row ["IMAGE"] + ", " +
+            //	row ["ARCHITECT"] + ", " +
+            //	row ["BUILDING"] + ", " +
+            //	row ["HEX"] + ", " +
+            //	row ["RGB"] + ", " +
+            //	row ["QUOTE"] + ", " +
+            //	row ["BLOCK"]
+            //	);
 
-			BuildingInfo info = new BuildingInfo ();
+            BuildingInfo info = new BuildingInfo ();
 			info.m_image = row ["IMAGE"];
 			info.m_architect = row ["ARCHITECT"];
 			info.m_buildingName = row ["BUILDING"];
@@ -59,7 +60,7 @@ public class DataReaderMap : MonoBehaviour
 		}
 
 
-		Debug.Log (dictReader);
+		//Debug.Log (dictReader);
 	}
 
 

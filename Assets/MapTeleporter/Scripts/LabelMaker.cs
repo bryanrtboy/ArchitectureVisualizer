@@ -3,30 +3,54 @@ using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
 
-[RequireComponent (typeof(Animator))]
+using Valve.VR.InteractionSystem;
+
+[RequireComponent (typeof(TeleportPoint))]
 public class LabelMaker : MonoBehaviour
 {
+	
 	public TextMeshPro m_text;
 	public Animator m_animator;
 
+	private TeleportPoint m_teleporter;
+	private bool hasALabel = true;
 
 
-	void Start ()
+    void Start()
+    {
+        Invoke("SetupNames", 2);
+    }
+
+	void SetupNames ()
 	{
-		m_animator = this.GetComponent<Animator> () as Animator;
-		m_text.transform.parent.gameObject.SetActive (false);
+		m_teleporter = this.GetComponent<TeleportPoint> () as TeleportPoint;
+
+		if (m_teleporter == null || m_teleporter.goToMarker.m_buildingId == Marker.id.Zero) {
+			Debug.LogWarning ("No markers for you, " + this.transform.parent.transform.name + "!");
+			hasALabel = false;
+		}
+
+		if (m_text != null && hasALabel) {
+			m_text.text = m_teleporter.goToMarker.m_info.m_buildingName;
+            Debug.Log("updating building name to " + m_teleporter.goToMarker.m_info.m_buildingName);
+            m_teleporter.UpdateVisuals();
+		} 
 	}
 
-
-	public void UpdateLabel (BuildingInfo b)
+	void OnEnable ()
 	{
-		m_text.text = b.m_buildingName;
+		if (hasALabel)
+			ShowLabel ();
+	}
+
+	public void ShowLabel ()
+	{
+//		if (m_animator.GetCurrentAnimatorStateInfo (0).IsTag ("off"))
 		m_animator.SetTrigger ("Open");
 	}
 
-	public void TurnOff ()
+	public void HideLabel ()
 	{
-		if (m_animator.GetCurrentAnimatorStateInfo (0).IsTag ("on"))
-			m_animator.SetTrigger ("Close");
+		m_animator.SetTrigger ("Close");
 	}
 }

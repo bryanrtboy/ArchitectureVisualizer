@@ -22,8 +22,12 @@ namespace Valve.VR.InteractionSystem
 		public Material pointVisibleMaterial;
 		public Material pointLockedMaterial;
 		public Material pointHighlightedMaterial;
-		public Transform destinationReticleTransform;
+        public Material mappointVisibleMaterial;
+        public Material mappointLockedMaterial;
+        public Material mappointHighlightedMaterial;
+        public Transform destinationReticleTransform;
 		public Transform invalidReticleTransform;
+        public Transform mapReticle;
 		public GameObject playAreaPreviewCorner;
 		public GameObject playAreaPreviewSide;
 		public Color pointerValidColor;
@@ -35,6 +39,8 @@ namespace Valve.VR.InteractionSystem
 		public float meshFadeTime = 0.2f;
 
 		public float arcDistance = 10.0f;
+
+        public GameObject m_map;
 
 		[Header( "Effects" )]
 		public Transform onActivateObjectTransform;
@@ -108,6 +114,9 @@ namespace Valve.VR.InteractionSystem
 		private Vector3 startingFeetOffset = Vector3.zero;
 		private bool movedFeetFarEnough = false;
 
+        private Vector3 destinationReticleStartScale;
+        private float arcStartThickness;
+
 		SteamVR_Events.Action chaperoneInfoInitializedAction;
 
 		// Events
@@ -161,6 +170,9 @@ namespace Valve.VR.InteractionSystem
 			float invalidReticleStartingScale = invalidReticleTransform.localScale.x;
 			invalidReticleMinScale *= invalidReticleStartingScale;
 			invalidReticleMaxScale *= invalidReticleStartingScale;
+
+            destinationReticleStartScale = destinationReticleTransform.localScale;
+            arcStartThickness = teleportArc.thickness;
 		}
 
 
@@ -330,11 +342,25 @@ namespace Valve.VR.InteractionSystem
 			//Trace to see if the pointer hit anything
 			RaycastHit hitInfo;
 			teleportArc.SetArcData( pointerStart, arcVelocity, true, pointerAtBadAngle );
-			if ( teleportArc.DrawArc( out hitInfo ) )
+
+            if ( teleportArc.DrawArc( out hitInfo ) )
 			{
 				hitSomething = true;
 				hitTeleportMarker = hitInfo.collider.GetComponentInParent<TeleportMarkerBase>();
-			}
+
+                if (hitInfo.collider.tag == "Map")
+                {
+                    teleportArc.thickness = arcStartThickness * .1f;
+                    destinationReticleTransform.localScale = new Vector3(.02f, .02f, .02f);
+                    invalidReticleTransform.localScale = new Vector3(.02f, .02f, .02f);
+                }
+                else
+                {
+                    teleportArc.thickness = arcStartThickness;
+                    destinationReticleTransform.localScale = new Vector3(.05f, .05f, .05f);
+                    invalidReticleTransform.localScale = new Vector3(.05f, .05f, .05f);
+                }
+            }
 
 			if ( pointerAtBadAngle )
 			{
@@ -345,7 +371,9 @@ namespace Valve.VR.InteractionSystem
 
 			if ( hitTeleportMarker != null ) //Hit a teleport marker
 			{
-				if ( hitTeleportMarker.locked )
+
+
+                if ( hitTeleportMarker.locked )
 				{
 					teleportArc.SetColor( pointerLockedColor );
 #if (UNITY_5_4)
@@ -365,7 +393,7 @@ namespace Valve.VR.InteractionSystem
 					pointerLineRenderer.startColor = pointerValidColor;
 					pointerLineRenderer.endColor = pointerValidColor;
 #endif
-					destinationReticleTransform.gameObject.SetActive( hitTeleportMarker.showReticle );
+                        destinationReticleTransform.gameObject.SetActive(hitTeleportMarker.showReticle);
 				}
 
 				offsetReticleTransform.gameObject.SetActive( true );
@@ -861,8 +889,16 @@ namespace Valve.VR.InteractionSystem
 
 			if ( teleportPoint != null )
 			{
-				teleportPosition = teleportPoint.transform.position;
-
+                if (teleportPoint.isMapMarker)
+                {
+                    teleportPosition = teleportPoint.teleportToPosition;
+                    if (m_map != null)
+                        m_map.transform.position = teleportPosition + new Vector3(1.5f, .75f, 1.5f);
+                }
+                else
+                {
+                    teleportPosition = teleportPoint.transform.position;
+                }
 				//Teleport to a new scene
 				if ( teleportPoint.teleportType == TeleportPoint.TeleportPointType.SwitchToNewScene )
 				{
@@ -871,8 +907,8 @@ namespace Valve.VR.InteractionSystem
 				}
 			}
 
-			// Find the actual floor position below the navigation mesh
-			TeleportArea teleportArea = teleportingToMarker as TeleportArea;
+            // Find the actual floor position below the navigation mesh
+            TeleportArea teleportArea = teleportingToMarker as TeleportArea;
 			if ( teleportArea != null )
 			{
 				if ( floorFixupMaximumTraceDistance > 0.0f )
@@ -888,6 +924,7 @@ namespace Valve.VR.InteractionSystem
 			if ( teleportingToMarker.ShouldMovePlayer() )
 			{
 				Vector3 playerFeetOffset = player.trackingOriginTransform.position - player.feetPositionGuess;
+              
 				player.trackingOriginTransform.position = teleportPosition + playerFeetOffset;
 			}
 			else

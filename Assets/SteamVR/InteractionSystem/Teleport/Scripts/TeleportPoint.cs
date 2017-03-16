@@ -6,6 +6,7 @@
 
 using UnityEngine;
 using UnityEngine.UI;
+
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -18,8 +19,9 @@ namespace Valve.VR.InteractionSystem
 		public enum TeleportPointType
 		{
 			MoveToLocation,
-			SwitchToNewScene
-		};
+			SwitchToNewScene}
+
+		;
 
 		//Public variables
 		public TeleportPointType teleportType = TeleportPointType.MoveToLocation;
@@ -46,156 +48,182 @@ namespace Valve.VR.InteractionSystem
 		private Color tintColor = Color.clear;
 		private Color titleColor = Color.clear;
 		private float fullTitleAlpha = 0.0f;
-
+		private Animator _animator;
+        
 		//Constants
 		private const string switchSceneAnimation = "switch_scenes_idle";
 		private const string moveLocationAnimation = "move_location_idle";
 		private const string lockedAnimation = "locked_idle";
 
-
+		private float startElevation;
+		private float currentElevation;
+		private float desiredElevation;
 		//-------------------------------------------------
-		public override bool showReticle
-		{
-			get
-			{
+		public override bool showReticle {
+			get {
 				return false;
 			}
 		}
 
 
 		//-------------------------------------------------
-		void Awake()
+		void Awake ()
 		{
-			GetRelevantComponents();
+			GetRelevantComponents ();
 
-			animation = GetComponent<Animation>();
+			animation = GetComponent<Animation> ();
+			_animator = GetComponent<Animator> ();
 
-			tintColorID = Shader.PropertyToID( "_TintColor" );
-
-			moveLocationIcon.gameObject.SetActive( false );
-			switchSceneIcon.gameObject.SetActive( false );
-			lockedIcon.gameObject.SetActive( false );
-
-			UpdateVisuals();
+			tintColorID = Shader.PropertyToID ("_TintColor");
+			if (!isMapMarker) {
+				moveLocationIcon.gameObject.SetActive (false);
+				switchSceneIcon.gameObject.SetActive (false);
+				lockedIcon.gameObject.SetActive (false);
+			}
+			UpdateVisuals ();
 		}
 
 
 		//-------------------------------------------------
-		void Start()
+		void Start ()
 		{
 			player = Player.instance;
+
+			startElevation = transform.localPosition.z;
+			currentElevation = startElevation;
+			desiredElevation = (teleportToPosition.y * .01f) + startElevation;
+		}
+
+		void OnDisable ()
+		{
+			if (isMapMarker)
+				transform.localPosition = new Vector3 (transform.localPosition.x, transform.localPosition.y, startElevation);
 		}
 
 
 		//-------------------------------------------------
-		void Update()
+		void Update ()
 		{
-			if ( Application.isPlaying )
-			{
-				lookAtPosition.x = player.hmdTransform.position.x;
-				lookAtPosition.y = lookAtJointTransform.position.y;
-				lookAtPosition.z = player.hmdTransform.position.z;
+			if (Application.isPlaying) {
+				if (!isMapMarker) {
+					lookAtPosition.x = player.hmdTransform.position.x;
+					lookAtPosition.y = lookAtJointTransform.position.y;
+					lookAtPosition.z = player.hmdTransform.position.z;
 
-				lookAtJointTransform.LookAt( lookAtPosition );
+					lookAtJointTransform.LookAt (lookAtPosition);
+				} else if (isMapMarker && desiredElevation - transform.localPosition.z > .001f) {
+					float heightMultiplier = .01f;
+
+					currentElevation = Mathf.Lerp (transform.localPosition.z, desiredElevation, Time.deltaTime * 2f);
+
+					transform.localPosition = new Vector3 (transform.localPosition.x, transform.localPosition.y, currentElevation);
+				}
 			}
 		}
 
 
 		//-------------------------------------------------
-		public override bool ShouldActivate( Vector3 playerPosition )
+		public override bool ShouldActivate (Vector3 playerPosition)
 		{
-			return ( Vector3.Distance( transform.position, playerPosition ) > 1.0f );
+			return (Vector3.Distance (transform.position, playerPosition) > 1.0f);
 		}
 
 
 		//-------------------------------------------------
-		public override bool ShouldMovePlayer()
+		public override bool ShouldMovePlayer ()
 		{
 			return true;
 		}
 
 
 		//-------------------------------------------------
-		public override void Highlight( bool highlight )
+		public override void Highlight (bool highlight)
 		{
-			if ( !locked )
-			{
-				if ( highlight )
-				{
-					SetMeshMaterials( Teleport.instance.pointHighlightedMaterial, titleHighlightedColor );
-				}
-				else
-				{
-					SetMeshMaterials( Teleport.instance.pointVisibleMaterial, titleVisibleColor );
+			if (!locked) {
+				if (highlight) {
+					if (isMapMarker)
+						_animator.SetTrigger ("Select");
+					else
+						SetMeshMaterials (Teleport.instance.pointHighlightedMaterial, titleHighlightedColor);
+				} else {
+					if (isMapMarker)
+						_animator.SetTrigger ("Deselect");
+					else
+						SetMeshMaterials (Teleport.instance.pointVisibleMaterial, titleVisibleColor);
 				}
 			}
 
-			if ( highlight )
-			{
-				pointIcon.gameObject.SetActive( true );
-				animation.Play();
-			}
-			else
-			{
-				pointIcon.gameObject.SetActive( false );
-				animation.Stop();
+			if (highlight) {
+				if (isMapMarker) {
+					_animator.SetTrigger ("Select");
+				} else {
+					pointIcon.gameObject.SetActive (true);
+					animation.Play ();
+				}
+			} else {
+				if (isMapMarker) {
+					_animator.SetTrigger ("Deselect");
+				} else {
+					pointIcon.gameObject.SetActive (false);
+					animation.Stop ();
+				}
 			}
 		}
 
 
 		//-------------------------------------------------
-		public override void UpdateVisuals()
+		public override void UpdateVisuals ()
 		{
-			if ( !gotReleventComponents )
-			{
+			if (!gotReleventComponents) {
 				return;
 			}
 
-			if ( locked )
-			{
-				SetMeshMaterials( Teleport.instance.pointLockedMaterial, titleLockedColor );
+			if (locked && !isMapMarker) {
 
+				SetMeshMaterials (Teleport.instance.pointLockedMaterial, titleLockedColor);
 				pointIcon = lockedIcon;
+				animation.clip = animation.GetClip (lockedAnimation);
+				
+			} else if (!isMapMarker) {
 
-				animation.clip = animation.GetClip( lockedAnimation );
-			}
-			else
-			{
-				SetMeshMaterials( Teleport.instance.pointVisibleMaterial, titleVisibleColor );
+				SetMeshMaterials (Teleport.instance.pointVisibleMaterial, titleVisibleColor);
 
-				switch ( teleportType )
-				{
-					case TeleportPointType.MoveToLocation:
-						{
-							pointIcon = moveLocationIcon;
+				switch (teleportType) {
+				case TeleportPointType.MoveToLocation:
+					{
+						pointIcon = moveLocationIcon;
 
-							animation.clip = animation.GetClip( moveLocationAnimation );
-						}
-						break;
-					case TeleportPointType.SwitchToNewScene:
-						{
-							pointIcon = switchSceneIcon;
+						animation.clip = animation.GetClip (moveLocationAnimation);
+					}
+					break;
+				case TeleportPointType.SwitchToNewScene:
+					{
+						pointIcon = switchSceneIcon;
 
-							animation.clip = animation.GetClip( switchSceneAnimation );
-						}
-						break;
+						animation.clip = animation.GetClip (switchSceneAnimation);
+					}
+					break;
 				}
+				
 			}
-
-			titleText.text = title;
+			if (titleText != null)
+				titleText.text = title;
 		}
 
 
 		//-------------------------------------------------
-		public override void SetAlpha( float tintAlpha, float alphaPercent )
+		public override void SetAlpha (float tintAlpha, float alphaPercent)
 		{
-			tintColor = markerMesh.material.GetColor( tintColorID );
+			if (isMapMarker)
+				return;
+
+			tintColor = markerMesh.material.GetColor (tintColorID);
 			tintColor.a = tintAlpha;
 
-			markerMesh.material.SetColor( tintColorID, tintColor );
-			switchSceneIcon.material.SetColor( tintColorID, tintColor );
-			moveLocationIcon.material.SetColor( tintColorID, tintColor );
-			lockedIcon.material.SetColor( tintColorID, tintColor );
+			markerMesh.material.SetColor (tintColorID, tintColor);
+			switchSceneIcon.material.SetColor (tintColorID, tintColor);
+			moveLocationIcon.material.SetColor (tintColorID, tintColor);
+			lockedIcon.material.SetColor (tintColorID, tintColor);
 
 			titleColor.a = fullTitleAlpha * alphaPercent;
 			titleText.color = titleColor;
@@ -203,8 +231,11 @@ namespace Valve.VR.InteractionSystem
 
 
 		//-------------------------------------------------
-		public void SetMeshMaterials( Material material, Color textColor )
+		public void SetMeshMaterials (Material material, Color textColor)
 		{
+
+			if (isMapMarker)
+				return;
 			markerMesh.material = material;
 			switchSceneIcon.material = material;
 			moveLocationIcon.material = material;
@@ -217,37 +248,39 @@ namespace Valve.VR.InteractionSystem
 
 
 		//-------------------------------------------------
-		public void TeleportToScene()
+		public void TeleportToScene ()
 		{
-			if ( !string.IsNullOrEmpty( switchToScene ) )
-			{
-				Debug.Log( "TeleportPoint: Hook up your level loading logic to switch to new scene: " + switchToScene );
-			}
-			else
-			{
-				Debug.LogError( "TeleportPoint: Invalid scene name to switch to: " + switchToScene );
+			if (!string.IsNullOrEmpty (switchToScene)) {
+				Debug.Log ("TeleportPoint: Hook up your level loading logic to switch to new scene: " + switchToScene);
+			} else {
+				Debug.LogError ("TeleportPoint: Invalid scene name to switch to: " + switchToScene);
 			}
 		}
 
 
 		//-------------------------------------------------
-		public void GetRelevantComponents()
+		public void GetRelevantComponents ()
 		{
-			markerMesh = transform.Find( "teleport_marker_mesh" ).GetComponent<MeshRenderer>();
-			switchSceneIcon = transform.Find( "teleport_marker_lookat_joint/teleport_marker_icons/switch_scenes_icon" ).GetComponent<MeshRenderer>();
-			moveLocationIcon = transform.Find( "teleport_marker_lookat_joint/teleport_marker_icons/move_location_icon" ).GetComponent<MeshRenderer>();
-			lockedIcon = transform.Find( "teleport_marker_lookat_joint/teleport_marker_icons/locked_icon" ).GetComponent<MeshRenderer>();
-			lookAtJointTransform = transform.Find( "teleport_marker_lookat_joint" );
+			if (!isMapMarker) {
+				markerMesh = transform.Find ("teleport_marker_mesh").GetComponent<MeshRenderer> ();
+				switchSceneIcon = transform.Find ("teleport_marker_lookat_joint/teleport_marker_icons/switch_scenes_icon").GetComponent<MeshRenderer> ();
+				moveLocationIcon = transform.Find ("teleport_marker_lookat_joint/teleport_marker_icons/move_location_icon").GetComponent<MeshRenderer> ();
+				lockedIcon = transform.Find ("teleport_marker_lookat_joint/teleport_marker_icons/locked_icon").GetComponent<MeshRenderer> ();
+				lookAtJointTransform = transform.Find ("teleport_marker_lookat_joint");
 
-			titleText = transform.Find( "teleport_marker_lookat_joint/teleport_marker_canvas/teleport_marker_canvas_text" ).GetComponent<Text>();
+				titleText = transform.Find ("teleport_marker_lookat_joint/teleport_marker_canvas/teleport_marker_canvas_text").GetComponent<Text> ();
+			}
 
 			gotReleventComponents = true;
 		}
 
 
 		//-------------------------------------------------
-		public void ReleaseRelevantComponents()
+		public void ReleaseRelevantComponents ()
 		{
+			if (isMapMarker)
+				return;
+
 			markerMesh = null;
 			switchSceneIcon = null;
 			moveLocationIcon = null;
@@ -258,56 +291,59 @@ namespace Valve.VR.InteractionSystem
 
 
 		//-------------------------------------------------
-		public void UpdateVisualsInEditor()
+		public void UpdateVisualsInEditor ()
 		{
-			if ( Application.isPlaying )
-			{
+			if (Application.isPlaying) {
 				return;
 			}
 
-			GetRelevantComponents();
+			GetRelevantComponents ();
 
-			if ( locked )
-			{
-				lockedIcon.gameObject.SetActive( true );
-				moveLocationIcon.gameObject.SetActive( false );
-				switchSceneIcon.gameObject.SetActive( false );
+			if (locked && !isMapMarker) {
 
+				lockedIcon.gameObject.SetActive (true);
+				moveLocationIcon.gameObject.SetActive (false);
+				switchSceneIcon.gameObject.SetActive (false);
+
+			
 				markerMesh.sharedMaterial = Teleport.instance.pointLockedMaterial;
 				lockedIcon.sharedMaterial = Teleport.instance.pointLockedMaterial;
+				
 
 				titleText.color = titleLockedColor;
-			}
-			else
-			{
-				lockedIcon.gameObject.SetActive( false );
+                
+			} else if (!isMapMarker) {
 
+				lockedIcon.gameObject.SetActive (false);
 				markerMesh.sharedMaterial = Teleport.instance.pointVisibleMaterial;
 				switchSceneIcon.sharedMaterial = Teleport.instance.pointVisibleMaterial;
 				moveLocationIcon.sharedMaterial = Teleport.instance.pointVisibleMaterial;
 
+				switch (teleportType) {
+				case TeleportPointType.MoveToLocation:
+					{
+						moveLocationIcon.gameObject.SetActive (true);
+						switchSceneIcon.gameObject.SetActive (false);
+					}
+					break;
+				case TeleportPointType.SwitchToNewScene:
+					{
+						moveLocationIcon.gameObject.SetActive (false);
+						switchSceneIcon.gameObject.SetActive (true);
+					}
+					break;
+				}
+				
 				titleText.color = titleVisibleColor;
 
-				switch ( teleportType )
-				{
-					case TeleportPointType.MoveToLocation:
-						{
-							moveLocationIcon.gameObject.SetActive( true );
-							switchSceneIcon.gameObject.SetActive( false );
-						}
-						break;
-					case TeleportPointType.SwitchToNewScene:
-						{
-							moveLocationIcon.gameObject.SetActive( false );
-							switchSceneIcon.gameObject.SetActive( true );
-						}
-						break;
-				}
+                
+				
 			}
 
-			titleText.text = title;
+			if (titleText != null)
+				titleText.text = title;
 
-			ReleaseRelevantComponents();
+			ReleaseRelevantComponents ();
 		}
 	}
 

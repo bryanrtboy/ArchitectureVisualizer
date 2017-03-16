@@ -1,14 +1,22 @@
-﻿using System.Collections;
+﻿//Bryan Leister, March 2017
+//
+//A script to create map markers, taking markers from a larger world, making a copy of them and placing them on a small
+//map. Mostly tested on a curved map. For reasons, not known, this script needs to be on a game object with a position
+//of 0,0,0 or the markers will be offset.
+
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+
+using Valve.VR.InteractionSystem;
 
 public class MarkerManager : MonoBehaviour
 {
 	//Static instance of GameManager which allows it to be accessed by any other script.
 	public static MarkerManager instance = null;
 
-    public GameObject m_markersGroup;
+	public GameObject m_markersGroup;
 	public Renderer m_worldArea;
 	public SpriteRenderer m_spriteMap;
 	public MeshFilter m_meshFilterMap;
@@ -27,6 +35,9 @@ public class MarkerManager : MonoBehaviour
 
 	void Awake ()
 	{
+
+		this.transform.position = Vector3.zero; //Not sure why I need to do this, but markers are offset if not here.
+
 		//Make sure this is in fact the only instance (Singleton pattern)
 		if (instance == null)
 			instance = this;
@@ -36,10 +47,10 @@ public class MarkerManager : MonoBehaviour
 		//Sets this to not be destroyed when reloading scene
 		DontDestroyOnLoad (gameObject);
 		CalculateLocalBounds (m_markersGroup.transform);
-	}
-
-	void Start ()
-	{
+//	}
+//
+//	void Start ()
+//	{
 		GetMarkersAndNormalizedPositions ();
 
 		if (m_spriteMap != null)
@@ -51,15 +62,15 @@ public class MarkerManager : MonoBehaviour
 
 	void GetMarkersAndNormalizedPositions ()
 	{
-        //Store the positions and rotations so we can zero out the object for calculations
-        Vector3 tempPos = m_markersGroup.transform.position;
-        Quaternion tempRot = m_markersGroup.transform.rotation;
+		//Store the positions and rotations so we can zero out the object for calculations
+		Vector3 tempPos = m_markersGroup.transform.position;
+		Quaternion tempRot = m_markersGroup.transform.rotation;
 
-        m_markersGroup.transform.position = Vector3.zero;
-        m_markersGroup.transform.localEulerAngles = Vector3.zero;
+		m_markersGroup.transform.position = Vector3.zero;
+		m_markersGroup.transform.rotation = Quaternion.identity;
 
 
-        Marker[] temp = m_markersGroup.GetComponentsInChildren<Marker> ();
+		Marker[] temp = m_markersGroup.GetComponentsInChildren<Marker> ();
 		m_worldMarkers = new Dictionary<int, Marker> ();
 
 		for (int i = 0; i < temp.Length; i++) {
@@ -67,27 +78,26 @@ public class MarkerManager : MonoBehaviour
 			m.m_telePortTo = m.gameObject;
 			m.transform.name = "TelePorter_" + i.ToString ();
 
-			//Get the coordinates as a percent of the world size plane (normalize) when laying flat. This may require that the world map be at position 0,0,0 for it to work right
-			float xPos = Mathf.InverseLerp (0, m_worldArea.bounds.size.x, m.transform.position.x + m_worldArea.bounds.extents.x);
-			float yPos = Mathf.InverseLerp (0, m_worldArea.bounds.size.z, m.transform.position.z + m_worldArea.bounds.extents.z);
-			m.m_elevation = Mathf.InverseLerp (0, m_markerBoundsHeight, m.transform.position.y);
-
+			//Get the coordinates as a percent of the world size plane (normalize) when laying flat. 
+			//This may require that the world map be at position 0,0,0 for it to work right
+			float xPos = Mathf.InverseLerp (0, m_worldArea.bounds.size.x, temp [i].transform.position.x + m_worldArea.bounds.extents.x);
+			float yPos = Mathf.InverseLerp (0, m_worldArea.bounds.size.z, temp [i].transform.position.z + m_worldArea.bounds.extents.z);
 
 			m.m_normalizedPosition = new Vector3 (xPos, yPos, 0);
 			m_worldMarkers.Add (i, m);
 
 		}
 
-        m_markersGroup.transform.position = tempPos;
-        m_markersGroup.transform.rotation = tempRot;
+		m_markersGroup.transform.position = tempPos;
+		m_markersGroup.transform.rotation = tempRot;
 	}
 
 	void PlaceMarkersOnSprite (SpriteRenderer sprite)
 	{
 		m_mapMarkers = new Animator[m_worldMarkers.Count];
 
-        Vector3 tempPos = sprite.transform.position;
-        Quaternion tempRot = sprite.transform.rotation;
+		Vector3 tempPos = sprite.transform.position;
+		Quaternion tempRot = sprite.transform.rotation;
 
 		//make a parent for the map in case the map is scaled non-uniformly
 		GameObject parent = new GameObject ("Map and Markers");
@@ -95,8 +105,8 @@ public class MarkerManager : MonoBehaviour
 		parent.transform.position = Vector3.zero;
 		parent.transform.rotation = Quaternion.identity;
 		sprite.gameObject.transform.SetParent (parent.transform);
-        sprite.transform.localPosition = Vector3.zero;
-        sprite.transform.localEulerAngles = Vector3.zero;
+		sprite.transform.localPosition = Vector3.zero;
+		sprite.transform.localEulerAngles = Vector3.zero;
 
 		GameObject marker = new GameObject ("Markers");
 		marker.transform.SetParent (parent.transform);
@@ -116,8 +126,8 @@ public class MarkerManager : MonoBehaviour
 			m_mapMarkers [i] = go.GetComponentInChildren<Animator> () as Animator;
 		}
 
-        sprite.transform.position = tempPos;
-        sprite.transform.rotation = tempRot;
+		sprite.transform.position = tempPos;
+		sprite.transform.rotation = tempRot;
 
 		m_isReady = true;
 	}
@@ -127,36 +137,57 @@ public class MarkerManager : MonoBehaviour
 
 		m_mapMarkers = new Animator[m_worldMarkers.Count];
 
-        Transform root = mf.transform.root.transform;
+		//Transform _root = mf.transform;
+		Transform map = mf.transform;
 
-        //Need to zero out the object for correct coordinates, saving it's current position and rotation
-        Vector3 tempPos = root.position;
-        Quaternion tempRot = root.rotation;
-        Vector3 tempScale = root.localScale;
+		//_root.SetParent(null);
 
-        root.position = Vector3.zero;
-       root.localEulerAngles = Vector3.zero;
-       root.localScale = Vector3.one;
+		////Need to zero out the object for correct coordinates, saving it's current position and rotation
+		Vector3 tempPos = map.position;
+		Quaternion tempRot = map.rotation;
+		Vector3 tempScale = map.localScale;
 
-        GameObject marker = new GameObject ("Markers");
+		map.position = Vector3.zero;
+		map.rotation = Quaternion.identity;
+		map.localScale = Vector3.one;
+
+		GameObject marker = new GameObject ("Marker Parent");
+		marker.transform.position = Vector3.zero;
+		marker.transform.rotation = Quaternion.identity;
+		marker.transform.SetParent (map);
+		//UV to 3D takes care of scaled meshes, let's parent it to an object for easy manipulation
+		// Debug.Log(marker.name + " is placed at " + marker.transform.position + ", parent is " + marker.transform.root.name);
 
 		for (int i = 0; i < m_worldMarkers.Count; i++) {
 			
-			GameObject go = Instantiate (m_mapMarkerPrefab, marker.transform);
-			go.transform.position = UvTo3D (new Vector2 (m_worldMarkers [i].m_normalizedPosition.x, m_worldMarkers [i].m_normalizedPosition.y), mf);
-			go.transform.localPosition += m_offsetBy;
+			GameObject go = Instantiate (m_mapMarkerPrefab, Vector3.zero, Quaternion.identity);
+			go.transform.SetParent (marker.transform);
+
+			go.transform.localPosition = UvTo3D (new Vector2 (m_worldMarkers [i].m_normalizedPosition.x, m_worldMarkers [i].m_normalizedPosition.y), mf);
 			m_mapMarkers [i] = go.GetComponentInChildren<Animator> () as Animator;
+
+			TeleportPoint teleport = go.GetComponent<TeleportPoint> () as TeleportPoint;
+			if (teleport != null) {
+				teleport.teleportToPosition = m_worldMarkers [i].transform.position;
+				teleport.title = m_worldMarkers [i].m_info.m_buildingName;
+				teleport.goToMarker = m_worldMarkers [i];
+			}
+
 		}
 
-        //UV to 3D takes care of scaled meshes, let's parent it to an object for easy manipulation
-        marker.transform.SetParent (mf.transform.root.transform);
-        marker.transform.localPosition = Vector3.zero;
-        marker.transform.localEulerAngles = new Vector3(0, 0, 180);
-       // marker.transform.localScale = tempScale;
+       
+		// marker.transform.localEulerAngles = new Vector3(0, 0, 180);
 
-        root.position = tempPos;
-        root.transform.rotation = tempRot;
-        root.transform.localScale = tempScale;
+		map.position = tempPos;
+		map.transform.rotation = tempRot;
+		map.transform.localScale = tempScale;
+
+		//_root.SetParent(rootParent);
+		//Debug.Log(_root.name + " is now at" + _root.transform.position);
+
+		//GameObject player = GameObject.FindGameObjectWithTag("Player");
+		//map.position = player.transform.position + new Vector3(1.5f, .75f, 1.5f);
+		//map.localEulerAngles = new Vector3(90, 0, 0);
 
 		m_isReady = true;
 
@@ -164,8 +195,6 @@ public class MarkerManager : MonoBehaviour
 
 	Vector3 UvTo3D (Vector2 uv, MeshFilter meshFilter)
 	{
-
-
 		int[] tris = meshFilter.mesh.triangles;
 		Vector2[] uvs = meshFilter.mesh.uv;
 		Vector3[] verts = meshFilter.mesh.vertices;
@@ -193,7 +222,7 @@ public class MarkerManager : MonoBehaviour
 			Vector3 p3D = a1 * verts [tris [i]] + a2 * verts [tris [i + 1]] + a3 * verts [tris [i + 2]];
 
 			//correct for scaled mesh
-			p3D = new Vector3 (p3D.x * meshFilter.transform.localScale.x, p3D.y * meshFilter.transform.localScale.y, p3D.z * meshFilter.transform.localScale.z);
+			//p3D = new Vector3 (p3D.x * meshFilter.transform.localScale.x, p3D.y * meshFilter.transform.localScale.y, p3D.z * meshFilter.transform.localScale.z);
 			// and return it in world coordinates:
 			return transform.TransformPoint (p3D);
 
