@@ -39,7 +39,9 @@ public class MapInputHandler : MonoBehaviour
 	{
 		m_audioSource = this.GetComponent<AudioSource> () as AudioSource;
 		cam = Camera.main.transform;
-	}
+       trackedobj =m_leftHand.GetComponent<SteamVR_TrackedObject>();
+        m_startPosition = m_player.transform.position;
+    }
 
 	void Update ()
 	{
@@ -82,28 +84,54 @@ public class MapInputHandler : MonoBehaviour
 			}
 		}
 
-		if (Input.GetKeyDown (KeyCode.G) && m_player != null) {
-
-			//			SteamVR_Fade.View (Color.black, 0);
-			//			SteamVR_Fade.View (Color.clear, 1);
+		if (Input.GetKeyDown (KeyCode.Escape) && m_player != null) {
+            Application.Quit();
 
 		}
 
-		//if (device.GetPressDown(SteamVR_Controller.ButtonMask.Trigger))
-		//{
-		//    m_player.transform.position = MarkerManager.instance.m_worldMarkers[_currentNumber].m_telePortTo.transform.position;
-		//    MarkerManager.instance.m_mapMarkers[_currentNumber].transform.root.position = m_player.transform.position + Vector3.one;
-		//}
-
-		if (Input.GetKeyDown (KeyCode.B) && m_player != null) {
-
-			//			SteamVR_Fade.View (Color.black, 0);
-			//			SteamVR_Fade.View (Color.clear, 1);
+        if (Input.GetButtonDown("Fire1") || Input.GetButtonDown("Fire2"))
+        {
+            // m_player.transform.position = m_startPosition;
+            if (m_map == null)
+                return;
 
 
-			if (VRDevice.isPresent) {
-				m_player.transform.position = m_startPosition;
-			}
+            if (!m_isShowingMap)
+            {
+
+                m_map.transform.position = cam.position;
+                m_map.transform.parent = cam;
+                m_map.transform.localPosition = Vector3.zero + m_mapPositionOffset;
+                m_map.transform.localEulerAngles = Vector3.zero;
+                m_map.transform.Rotate(new Vector3(0, 180, 0));
+                m_map.transform.parent = null;
+                m_map.SetTrigger("Open");
+                m_isShowingMap = true;
+
+                if (m_openMap)
+                {
+                    m_audioSource.clip = m_openMap;
+                    m_audioSource.Play();
+                }
+
+            }
+            else
+            {
+                m_map.SetTrigger("Close");
+                m_isShowingMap = false;
+
+                if (m_closeMap)
+                {
+                    m_audioSource.clip = m_closeMap;
+                    m_audioSource.Play();
+                }
+            }
+        }
+
+        if (Input.GetKeyDown (KeyCode.B) && m_player != null) {
+
+
+            m_player.transform.position = m_startPosition;
 		}
 
 

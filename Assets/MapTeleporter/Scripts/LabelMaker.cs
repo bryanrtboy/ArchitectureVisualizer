@@ -32,7 +32,7 @@ public class LabelMaker : MonoBehaviour
 
 		if (m_text != null && hasALabel) {
 			m_text.text = m_teleporter.goToMarker.m_info.m_buildingName;
-            Debug.Log("updating building name to " + m_teleporter.goToMarker.m_info.m_buildingName);
+         //   Debug.Log("updating building name to " + m_teleporter.goToMarker.m_info.m_buildingName);
             m_teleporter.UpdateVisuals();
 		} 
 	}
