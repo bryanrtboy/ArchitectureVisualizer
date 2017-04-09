@@ -46,7 +46,7 @@ public class TakeScreenShot : MonoBehaviour
 		if (m_resolutionMultiplier >= 6)
 			m_resolutionMultiplier = 6;
 		
-		m_savePrefix = "_" + Application.loadedLevelName + "_" + m_screenCount.ToString () + ".png";
+		m_savePrefix = "_" + m_screenCount.ToString () + ".png";
 		
 		Debug.Log ("Taking a Screenshot, " + m_savePrefix + " at " + m_resolutionMultiplier + "X resolution!");
 		yield return new WaitForEndOfFrame ();

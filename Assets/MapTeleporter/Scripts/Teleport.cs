@@ -34,14 +34,11 @@ namespace Valve.VR.InteractionSystem
 		public Color pointerInvalidColor;
 		public Color pointerLockedColor;
 		public bool showPlayAreaMarker = true;
-        public Animator m_mapAnimator;
 
 		public float teleportFadeTime = 0.1f;
 		public float meshFadeTime = 0.2f;
 
 		public float arcDistance = 10.0f;
-
-        public GameObject m_map;
 
 		[Header( "Effects" )]
 		public Transform onActivateObjectTransform;
@@ -115,7 +112,7 @@ namespace Valve.VR.InteractionSystem
 		private Vector3 startingFeetOffset = Vector3.zero;
 		private bool movedFeetFarEnough = false;
 
-        private Vector3 destinationReticleStartScale;
+//        private Vector3 destinationReticleStartScale;
         private float arcStartThickness;
 
 		SteamVR_Events.Action chaperoneInfoInitializedAction;
@@ -172,7 +169,7 @@ namespace Valve.VR.InteractionSystem
 			invalidReticleMinScale *= invalidReticleStartingScale;
 			invalidReticleMaxScale *= invalidReticleStartingScale;
 
-            destinationReticleStartScale = destinationReticleTransform.localScale;
+//            destinationReticleStartScale = destinationReticleTransform.localScale;
             arcStartThickness = teleportArc.thickness;
 		}
 
@@ -846,9 +843,6 @@ namespace Valve.VR.InteractionSystem
 					InitiateTeleportFade();
 
 					CancelTeleportHint();
-
-                    if(m_mapAnimator != null)
-                        m_mapAnimator.SetTrigger("Deselect");
                 }
 			}
 		}
@@ -896,8 +890,6 @@ namespace Valve.VR.InteractionSystem
                 if (teleportPoint.isMapMarker)
                 {
                     teleportPosition = teleportPoint.teleportToPosition;
-                    if (m_map != null)
-                        m_map.transform.position = teleportPosition + new Vector3(1.5f, .75f, 1.5f);
                 }
                 else
                 {

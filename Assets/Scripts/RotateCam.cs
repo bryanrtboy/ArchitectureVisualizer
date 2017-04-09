@@ -16,7 +16,7 @@ public class RotateCam : MonoBehaviour
 
     Vector2 touchpad;
 
-    private float sensitivity = 3.5f;
+//    private float sensitivity = 3.5f;
 
     void Start()
     {

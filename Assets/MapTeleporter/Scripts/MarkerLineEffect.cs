@@ -6,8 +6,8 @@ public class MarkerLineEffect : MonoBehaviour
 {
 	public LineRenderer line;
 
-	float f = 0;
-	float rand = 1;
+//	float f = 0;
+//	float rand = 1;
 	// Use this for initialization
 	void Start ()
 	{
@@ -18,7 +18,7 @@ public class MarkerLineEffect : MonoBehaviour
 
 		line.useWorldSpace = false;
 
-		rand = Random.Range (.1f, 2f);
+		//rand = Random.Range (.1f, 2f);
 	}
 
 

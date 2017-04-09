@@ -112,7 +112,7 @@ namespace Valve.VR.InteractionSystem
 
 					lookAtJointTransform.LookAt (lookAtPosition);
 				} else if (isMapMarker && desiredElevation - transform.localPosition.z > .001f) {
-					float heightMultiplier = .01f;
+					//float heightMultiplier = .01f;
 
 					currentElevation = Mathf.Lerp (transform.localPosition.z, desiredElevation, Time.deltaTime * 2f);
 

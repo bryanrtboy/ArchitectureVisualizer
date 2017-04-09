@@ -29,7 +29,7 @@ public class MarkerManager : MonoBehaviour
 	public Dictionary<int, Marker> m_worldMarkers;
 	[HideInInspector]
 	public Animator[] m_mapMarkers;
-	float m_markerBoundsHeight;
+//	float m_markerBoundsHeight;
 
 	public bool m_isReady { get; private set; }
 
@@ -47,10 +47,7 @@ public class MarkerManager : MonoBehaviour
 		//Sets this to not be destroyed when reloading scene
 		DontDestroyOnLoad (gameObject);
 		CalculateLocalBounds (m_markersGroup.transform);
-//	}
-//
-//	void Start ()
-//	{
+
 		GetMarkersAndNormalizedPositions ();
 
 		if (m_spriteMap != null)
@@ -251,7 +248,7 @@ public class MarkerManager : MonoBehaviour
 		Vector3 localCenter = bounds.center - t.transform.position;
 		bounds.center = localCenter;
 
-		m_markerBoundsHeight = bounds.extents.y * 2;
+//		m_markerBoundsHeight = bounds.extents.y * 2;
 
 //		Debug.Log ("The local bounds of this model is " + bounds);
 		t.transform.rotation = currentRotation;
