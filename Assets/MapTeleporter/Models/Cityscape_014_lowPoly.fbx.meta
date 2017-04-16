@@ -33,6 +33,7 @@ ModelImporter:
     100050: NJC_1
     100052: SJ_1
     100054: SW_1
+    100056: CB_tower_1_MeshPart2
     400000: A_A_1
     400002: Austin_Geometry_1
     400004: B_A
@@ -61,6 +62,7 @@ ModelImporter:
     400050: NJC_1
     400052: SJ_1
     400054: SW_1
+    400056: CB_tower_1_MeshPart2
     2300000: A_A_1
     2300002: Austin_Geometry_1
     2300004: B_A
@@ -85,6 +87,7 @@ ModelImporter:
     2300042: NJC_1
     2300044: SJ_1
     2300046: SW_1
+    2300048: CB_tower_1_MeshPart2
     3300000: A_A_1
     3300002: Austin_Geometry_1
     3300004: B_A
@@ -109,6 +112,7 @@ ModelImporter:
     3300042: NJC_1
     3300044: SJ_1
     3300046: SW_1
+    3300048: CB_tower_1_MeshPart2
     4300000: SW_1
     4300002: KTM_1
     4300004: KM_1
@@ -133,6 +137,7 @@ ModelImporter:
     4300042: B_E_1
     4300044: B_A
     4300046: Base_1
+    4300048: CB_tower_1_MeshPart2
   materials:
     importMaterials: 1
     materialName: 0
@@ -164,7 +169,7 @@ ModelImporter:
     addColliders: 0
     importBlendShapes: 1
     swapUVChannels: 0
-    generateSecondaryUV: 0
+    generateSecondaryUV: 1
     useFileUnits: 1
     optimizeMeshForGPU: 1
     keepQuads: 0

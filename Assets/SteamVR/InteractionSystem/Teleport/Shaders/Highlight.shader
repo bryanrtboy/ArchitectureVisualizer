@@ -94,7 +94,7 @@ Shader "Valve/VR/Highlight"
 
 	SubShader
 	{
-		Tags{ "Queue" = "Transparent+750" "RenderType" = "Transparent" }
+		Tags{ "Queue" = "Transparent" "RenderType" = "Transparent" }
 		LOD 100
 
 		// Behind Geometry ---------------------------------------------------------------------------------------------------------------------------------------------------

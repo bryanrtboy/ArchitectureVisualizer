@@ -35,14 +35,8 @@ public class Marker : MonoBehaviour
 	public id m_buildingId = id.Zero;
 	public MapArea m_area = MapArea.Amber;
 	public bool m_isPortal = false;
-
-	[HideInInspector]
 	public Vector3 m_normalizedPosition;
-	[HideInInspector]
-	public GameObject m_telePortTo;
-	//[HideInInspector]
 	public BuildingInfo m_info;
-
 
 	void Start ()
 	{
